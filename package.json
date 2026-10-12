@@ -1,0 +1,26 @@
+{
+  "name": "loft",
+  "version": "1.0.0",
+  "description": "Loft: a classic 3D avatar chat, in the spirit of the old IMVU client",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:artifact": "VITE_ASSET_PACK=1 vite build && node tools/pack-assets.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "private": "true",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0",
+    "vite": "^8.3.2"
+  }
+}
