@@ -24,6 +24,18 @@ room's regulars. To get real accounts, friends, inbox and real people in rooms, 
 Everything in the database is reached through security definer functions keyed by a session token, so the publishable key
 exposes nothing directly. Rooms use Realtime channels for presence, movement, seats, chat and voice signalling.
 
+## Graphics
+
+The renderer runs a full post processing chain on top of physically based materials: multisample anti aliasing, ground truth
+ambient occlusion, bloom, vignette and grain, SMAA and filmic tone mapping, with depth of field at Ultra. Shadows are variance
+soft shadows. Skin has a light sheen and a faint clearcoat, eyes a wet clearcoat, hair anisotropic highlights, cloth a soft sheen,
+furniture is rounded with fabric sheen or leather clearcoat, floors carry normal maps and the glossy ones are true mirrors, windows
+and screens are area lights, the club has moving spotlights, the rooftop string lights, the beach a physical sky and animated water.
+Quality (Auto, Ultra, High, Low) is in the top bar; Auto picks from the device. Low turns the post chain off for phones.
+
+Honest note: this is as far as a browser engine and the available models go. Film quality humans need scanned heads, strand hair
+and 4K textures from a team of artists; the models here are mid detail, so the result is a clear step up, not a GTA 6 frame.
+
 ## What is where
 
 - `src/avatar.js` avatars assembled from swappable parts on one skeleton, skin, hair and outfit recolouring, face and body

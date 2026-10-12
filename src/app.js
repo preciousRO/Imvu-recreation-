@@ -15,14 +15,17 @@ const ago = (t) => { const d = (Date.now() - new Date(t)) / 1000; return d < 60 
 // A small studio for dress up and the shop
 class DressScene {
   constructor(app) { this.app = app; const s = app.scene; this.g = new THREE.Group(); s.add(this.g);
-    const floor = new THREE.Mesh(new THREE.CircleGeometry(5, 48), new THREE.MeshStandardMaterial({ color: '#2b2f38', roughness: 0.6, metalness: 0.1 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; this.g.add(floor);
-    const back = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 6, 48, 1, true, Math.PI * 0.75, Math.PI * 1.5), new THREE.MeshStandardMaterial({ color: '#1f2330', side: THREE.BackSide, roughness: 1 })); back.position.y = 2.9; this.g.add(back);
-    const key = new THREE.DirectionalLight('#ffffff', 2.2); key.position.set(2, 4, 3); key.castShadow = true; key.shadow.mapSize.set(1024, 1024); this.g.add(key);
-    const fill = new THREE.DirectionalLight('#9fc5ff', 0.8); fill.position.set(-3, 2, 2); this.g.add(fill);
-    const rim = new THREE.PointLight('#ff5fc8', 6, 10); rim.position.set(-1, 2.5, -2); this.g.add(rim);
-    this.g.add(new THREE.HemisphereLight('#aab6ff', '#2a2420', 0.5)); this.avatar = null; }
+    // a photo studio: a seamless cyclorama, a glossy floor and three soft area lights
+    const cyc = new THREE.Mesh(new THREE.SphereGeometry(7, 48, 32), new THREE.MeshStandardMaterial({ color: '#262b38', side: THREE.BackSide, roughness: 1 })); cyc.position.y = 2; this.g.add(cyc);
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(6, 64), new THREE.MeshPhysicalMaterial({ color: '#23272f', roughness: 0.35, metalness: 0.05, clearcoat: 0.6, clearcoatRoughness: 0.25 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; this.g.add(floor);
+    const key = new THREE.DirectionalLight('#fff4e6', 1.6); key.position.set(2.2, 3.2, 2.8); key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 6; key.shadow.blurSamples = 12; key.shadow.bias = -0.0002; key.shadow.normalBias = 0.02; Object.assign(key.shadow.camera, { left: -4, right: 4, top: 5, bottom: -1, near: 0.5, far: 20 }); this.g.add(key);
+    const soft = new THREE.RectAreaLight('#ffffff', 2.2, 3, 3); soft.position.set(2.5, 2.6, 3); soft.lookAt(0, 1.2, 0); this.g.add(soft);
+    const fill = new THREE.RectAreaLight('#9fc5ff', 1.1, 2.5, 2.5); fill.position.set(-3, 1.8, 2.2); fill.lookAt(0, 1.2, 0); this.g.add(fill);
+    const rim = new THREE.RectAreaLight('#ff5fc8', 3, 1, 3); rim.position.set(-1.5, 2.4, -2.6); rim.lookAt(0, 1.2, 0); this.g.add(rim);
+    this.g.add(new THREE.HemisphereLight('#aab6ff', '#2a2420', 0.35)); this.avatar = null; }
   async setAvatar(cfg) { if (this.avatar && this.avatar.config.gender === cfg.gender) { await this.avatar.setConfig(cfg); return this.avatar; } this.avatar?.dispose(); this.avatar = new Avatar(this.app.scene, { ...cfg }, { tagClass: 'is-me' }); this.avatar.group.rotation.y = Math.PI * 0.08; await this.avatar.load(); this.app.controls.player = null; return this.avatar; }
-  focus(mode) { const c = this.app.controls; const a = this.avatar; const yaw = (a?.group.rotation.y || 0) + 0.05; if (mode === 'face' && a) { const h = new THREE.Vector3(); a.bones.get('Head')?.getWorldPosition(h); h.y += 0.07; c.setFocus(h, { dist: 0.8, yaw, pitch: 0 }); } else c.setFocus(new THREE.Vector3(0, 0.95, 0), { dist: 3.0, yaw, pitch: 0.03 }); }
+  focus(mode) { const c = this.app.controls; const a = this.avatar; const yaw = (a?.group.rotation.y || 0) + 0.05; this.mode = mode; if (mode === 'face' && a) { const h = new THREE.Vector3(); a.bones.get('Head')?.getWorldPosition(h); h.y += 0.07; c.setFocus(h, { dist: 0.8, yaw, pitch: 0 }); } else c.setFocus(new THREE.Vector3(0, 0.95, 0), { dist: 3.0, yaw, pitch: 0.03 }); }
+  focusPoint() { const a = this.avatar; if (!a) return null; const h = new THREE.Vector3(); a.bones.get('Head')?.getWorldPosition(h); return h; }
   update(dt) { this.avatar?.update(dt); this.app.controls.update(dt); }
   dispose() { this.avatar?.dispose(); this.app.scene.remove(this.g); this.app.controls.setFocus(null); }
 }

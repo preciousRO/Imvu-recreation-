@@ -21,7 +21,7 @@ export class RoomSession {
   }
   async enter() {
     const u = this.backend.user;
-    this.room = buildRoom(this.scene, this.def, this.decor);
+    this.room = buildRoom(this.scene, this.def, this.decor, { renderer: this.renderer, defaultEnv: this.app.defaultEnv });
     this.controls.room = { colliders: this.room.colliders, bounds: this.room.bounds };
     this.player = new Avatar(this.scene, { ...u.avatar, name: u.name }, { tagClass: 'is-me' });
     this.player.group.position.copy(this.room.entrance); this.player.group.rotation.y = Math.PI; await this.player.load();
@@ -120,7 +120,7 @@ export class RoomSession {
     return false;
   }
   _highlight(o) { this.room.placed.forEach((p) => p.traverse((m) => { if (m.isMesh && m.material?.emissive) { m.material.emissive.setHex(p === o ? 0x3366ff : (m.userData.baseEmissive ?? 0)); } })); }
-  _rebuild() { const pos = this.player.group.position.clone(); this._standUp(); this.room.dispose(); this.room = buildRoom(this.scene, this.def, this.decor); this.controls.room = { colliders: this.room.colliders, bounds: this.room.bounds }; this.player.group.position.copy(pos); this.selected = null; this.placing = null; this.el.querySelectorAll('[data-place]').forEach((x) => x.classList.remove('sel')); }
+  _rebuild() { const pos = this.player.group.position.clone(); this._standUp(); this.room.dispose(); this.room = buildRoom(this.scene, this.def, this.decor, { renderer: this.renderer, defaultEnv: this.app.defaultEnv }); this.controls.room = { colliders: this.room.colliders, bounds: this.room.bounds }; this.player.group.position.copy(pos); this.selected = null; this.placing = null; this.el.querySelectorAll('[data-place]').forEach((x) => x.classList.remove('sel')); }
   // ---- loop ----
   update(dt) {
     this.t += dt;
@@ -130,5 +130,6 @@ export class RoomSession {
     for (const s of this.room.spots) if (s.marker.visible) s.marker.material.opacity = 0.35 + 0.2 * Math.sin(this.t * 3 + s.pos.x);
     if (this.room.sun) { this.room.sun.target.position.copy(this.player.group.position); }
   }
+  focusPoint() { const h = new THREE.Vector3(); this.player?.bones.get('Head')?.getWorldPosition(h); return this.player ? h : null; }
   leave() { this.net.leave(); this.lobby?.setRoom(null); for (const b of this.bots) b.avatar.dispose(); this.player?.dispose(); this.room?.dispose(); this.controls.player = null; this.controls.onTap = null; this.controls.onMove = null; this.controls.onArrive = null; }
 }

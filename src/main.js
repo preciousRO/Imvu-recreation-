@@ -6,19 +6,25 @@ import { Controls } from './controls.js';
 import { backend } from './backend.js';
 import { RoomNet, Lobby } from './net.js';
 import { App } from './app.js';
+import { Pipeline, detectQuality, QUALITY } from './render.js';
+import { RENDER } from './rooms.js';
 
 const $ = (id) => document.getElementById(id);
 const renderer = new THREE.WebGLRenderer({ canvas: $('gl'), antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.VSMShadowMap; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05; renderer.outputColorSpace = THREE.SRGBColorSpace;
 const labels = new CSS2DRenderer({ element: $('labels') }); labels.setSize(innerWidth, innerHeight);
 const scene = new THREE.Scene(); scene.background = new THREE.Color('#15171b');
 const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.05, 300);
-scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture; scene.environmentIntensity = 0.45;
-addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); labels.setSize(innerWidth, innerHeight); });
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture; scene.environmentIntensity = 0.5;
+const qparam = new URLSearchParams(location.search).get('q'); let qpref = qparam || (() => { try { return localStorage.getItem('loft.quality'); } catch { return null; } })() || 'auto';
+const resolveQ = (p) => (p === 'auto' || !QUALITY[p] ? detectQuality() : p);
+const pipeline = new Pipeline(renderer, scene, camera, resolveQ(qpref)); const applyRender = () => { const q = QUALITY[pipeline.quality]; RENDER.reflections = q.reflections; RENDER.water = q.water; RENDER.shadow = q.shadow; }; applyRender();
+const qsel = document.getElementById('quality'); qsel.value = qpref; qsel.onchange = () => { qpref = qsel.value; try { localStorage.setItem('loft.quality', qpref); } catch {} pipeline.setQuality(resolveQ(qpref)); applyRender(); app.route(); };
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); pipeline.setSize(); labels.setSize(innerWidth, innerHeight); });
 const controls = new Controls(camera, $('gl'));
 const net = new RoomNet(scene, backend); const lobby = new Lobby(backend);
-const app = new App({ scene, camera, renderer, labels, controls, backend, net, lobby });
+const app = new App({ scene, camera, renderer, labels, controls, backend, net, lobby }); app.defaultEnv = scene.environment;
 $('logout').onclick = () => app.logout();
 
 async function boot() {
@@ -31,7 +37,7 @@ async function boot() {
   app.start();
 }
 const clock = new THREE.Clock();
-function loop() { requestAnimationFrame(loop); const dt = Math.min(clock.getDelta(), 0.1); app.update(dt); if (!$('gl').classList.contains('off')) { renderer.render(scene, camera); labels.render(scene, camera); } }
-window.loft = { app, backend, scene, camera, controls, net, lobby, get controller() { return app.controller; } };
+function loop() { requestAnimationFrame(loop); const dt = Math.min(clock.getDelta(), 0.1); app.update(dt); if (!$('gl').classList.contains('off')) { const fp = app.controller?.focusPoint?.(); if (fp) pipeline.setFocus(camera.position.distanceTo(fp)); pipeline.render(dt); labels.render(scene, camera); } }
+window.loft = { app, backend, scene, camera, controls, net, lobby, pipeline, get controller() { return app.controller; } };
 boot().catch((e) => { console.error(e); $('loadmsg').textContent = 'Failed to load: ' + e.message; });
 loop();

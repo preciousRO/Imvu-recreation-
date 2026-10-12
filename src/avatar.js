@@ -100,7 +100,16 @@ export function avatarPhoto(renderer, scene, avatar, size = 160) {
   ctx.putImageData(img, 0, 0); return c.toDataURL('image/jpeg', 0.82);
 }
 
-const PROC_MAT = (color, rough = 0.95) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0 });
+// Physically based upgrades of the imported materials: skin gets peach fuzz sheen and a faint oily clearcoat,
+// eyes a wet clearcoat, hair anisotropic highlights, cloth a soft sheen.
+function physical(src, props = {}) { const m = new THREE.MeshPhysicalMaterial(); THREE.MeshStandardMaterial.prototype.copy.call(m, src); for (const [k, v] of Object.entries(props)) { if (k === 'sheenColor' || k === 'specularColor') m[k] = new THREE.Color(v); else m[k] = v; } return m; }
+const SKIN_PROPS = { roughness: 0.55, sheen: 0.18, sheenRoughness: 0.7, sheenColor: '#ffc9a8', clearcoat: 0.05, clearcoatRoughness: 0.65, envMapIntensity: 0.7 };
+const HAIR_PROPS = { roughness: 0.62, anisotropy: 0.45, anisotropyRotation: Math.PI / 2, sheen: 0.06, sheenColor: '#ffffff', envMapIntensity: 0.35, specularIntensity: 0.6 };
+const CLOTH_PROPS = { sheen: 0.12, sheenRoughness: 0.85, sheenColor: '#ffffff', envMapIntensity: 0.8 };
+const EYE_PROPS = { roughness: 0.15, clearcoat: 0.6, clearcoatRoughness: 0.08, envMapIntensity: 0.5, specularIntensity: 0.6 };
+const PROC_MAT = (color, rough = 0.95, extra = {}) => new THREE.MeshPhysicalMaterial({ color, roughness: rough, metalness: 0, ...extra });
+const HAIR_MAT = (color) => PROC_MAT(color, 0.88, { sheen: 0.22, sheenRoughness: 0.6, sheenColor: new THREE.Color('#ffffff').lerp(new THREE.Color(color), 0.6), anisotropy: 0.35, envMapIntensity: 0.35, specularIntensity: 0.5 });
+const CLOTH_MAT = (color) => PROC_MAT(color, 0.85, { sheen: 0.5, sheenRoughness: 0.7, sheenColor: new THREE.Color('#ffffff') });
 
 export class Avatar {
   constructor(scene, config, opts = {}) {
@@ -110,7 +119,7 @@ export class Avatar {
     this.parts = {}; this.bones = new Map(); this.mixer = null; this.actions = {}; this.current = null;
     this.loaded = false; this.formal = false; this.talkUntil = 0; this.mouth = []; this.headMeshes = [];
     this.moveSpeed = 0; this.t = Math.random() * 100; this.idleTimer = 8 + Math.random() * 10;
-    this.label = null; this.bubble = null; this.oneShot = null; this.loopAction = null;
+    this.label = null; this.bubble = null; this.oneShot = null; this.loopAction = null; this.blinkers = []; this.blinkT = 2 + Math.random() * 3; this.blink = 0;
     this._skinMats = []; this._hairMats = []; this._topMats = []; this._bottomMats = []; this._shoeMats = [];
   }
 
@@ -158,13 +167,15 @@ export class Avatar {
     for (const src of meshes) {
       const mesh = this._bindMesh(src, partId);
       const matName = src.material.name;
-      if (/Skin|Body/.test(matName)) { mesh.material = tintable(src.material, refColor(partId, matName)); this._skinMats.push(mesh.material); }
-      else if (/Hair|Beard/.test(matName)) { mesh.material = tintable(src.material, refColor(partId, matName)); this._hairMats.push(mesh.material); }
-      else if (/Top/.test(matName)) { mesh.material = tintable(src.material, refColor(partId, matName)); this._topMats.push(mesh.material); }
-      else if (/Bottom/.test(matName)) { mesh.material = tintable(src.material, refColor(partId, matName)); this._bottomMats.push(mesh.material); }
-      else if (/Footwear/.test(matName)) { mesh.material = tintable(src.material, refColor(partId, matName)); this._shoeMats.push(mesh.material); }
-      else { mesh.material = src.material.clone(); }
-      if (slot === 'head') { this.headMeshes.push(mesh); if (mesh.morphTargetDictionary) { const d = mesh.morphTargetDictionary; const k = ['mouthOpen', 'jawOpen', 'viseme_aa'].find((n) => n in d); if (k !== undefined) this.mouth.push([mesh, d[k]]); const s = ['mouthSmile', 'mouthSmileLeft'].find((n) => n in d); if (s) mesh.userData.smile = d[s]; } }
+      if (/Skin|Body/.test(matName)) { mesh.material = tintable(physical(src.material, SKIN_PROPS), refColor(partId, matName)); this._skinMats.push(mesh.material); }
+      else if (/Hair|Beard/.test(matName)) { mesh.material = tintable(physical(src.material, HAIR_PROPS), refColor(partId, matName)); this._hairMats.push(mesh.material); }
+      else if (/Top/.test(matName)) { mesh.material = tintable(physical(src.material, CLOTH_PROPS), refColor(partId, matName)); this._topMats.push(mesh.material); }
+      else if (/Bottom/.test(matName)) { mesh.material = tintable(physical(src.material, CLOTH_PROPS), refColor(partId, matName)); this._bottomMats.push(mesh.material); }
+      else if (/Footwear/.test(matName)) { mesh.material = tintable(physical(src.material, { clearcoat: 0.3, clearcoatRoughness: 0.4 }), refColor(partId, matName)); this._shoeMats.push(mesh.material); }
+      else if (/Eye/.test(matName)) { mesh.material = physical(src.material, EYE_PROPS); }
+      else if (/Teeth/.test(matName)) { mesh.material = physical(src.material, { roughness: 0.3, clearcoat: 0.5 }); }
+      else { mesh.material = physical(src.material); }
+      if (slot === 'head') { this.headMeshes.push(mesh); if (mesh.morphTargetDictionary) { const d = mesh.morphTargetDictionary; const k = ['mouthOpen', 'jawOpen', 'viseme_aa'].find((n) => n in d); if (k !== undefined) this.mouth.push([mesh, d[k]]); const s = ['mouthSmile', 'mouthSmileLeft'].find((n) => n in d); if (s) mesh.userData.smile = d[s]; if ('eyeBlinkLeft' in d && 'eyeBlinkRight' in d) this.blinkers.push([mesh, d.eyeBlinkLeft, d.eyeBlinkRight]); } }
       group.add(mesh);
     }
     this.root.add(group);
@@ -176,7 +187,7 @@ export class Avatar {
     const g = this.parts[slot]; if (!g) return;
     g.traverse((o) => { if (o.isMesh) { if (o.material?.userData?.tint) { for (const arr of [this._skinMats, this._hairMats, this._topMats, this._bottomMats, this._shoeMats]) { const i = arr.indexOf(o.material); if (i >= 0) arr.splice(i, 1); } } if (!o.isSkinnedMesh) o.geometry.dispose(); o.material.dispose?.(); } });
     this.root.remove(g); delete this.parts[slot];
-    if (slot === 'head') { this.headMeshes = []; this.mouth = []; }
+    if (slot === 'head') { this.headMeshes = []; this.mouth = []; this.blinkers = []; }
   }
 
   async rebuildParts() {
@@ -223,8 +234,8 @@ export class Avatar {
     this._clearProcedural();
     const H = this._headMetrics(); if (!H || !H.headBone) return;
     const c = this.config; const style = (c.hair || '').replace('proc:', '');
-    const hairMat = PROC_MAT(c.hairColor || '#141414', 0.92);
-    const clothMat = PROC_MAT(c.topColor || '#8e44ad', 0.85);
+    const hairMat = HAIR_MAT(c.hairColor || '#141414');
+    const clothMat = CLOTH_MAT(c.topColor || '#8e44ad');
     const { cx, cy, cz, rx, ry, rz } = H; const Q = new THREE.Quaternion();
     // place a mesh given model-space position and scale, parented to the Head bone using the bind pose
     const add = (geo, mat, x = 0, y = 0, z = 0, sx = 1, sy = 1, sz = 1) => {
@@ -250,7 +261,7 @@ export class Avatar {
       if (style === 'low') { cap(hairMat, 1.07, 0.38, ry * 0.05); backBand(hairMat, 1.06, 0.38, 0.62); }
       else if (style === 'fade') { cap(hairMat, 1.06, 0.36, ry * 0.05); backBand(hairMat, 1.05, 0.36, 0.5); }
       else if (style === 'afro') {
-        const m = add(new THREE.SphereGeometry(1, 40, 28), hairMat, 0, ry * 1.0, -rz * 0.3, rx * 1.7, ry * 1.5, rz * 1.4);
+        const fuzz = HAIR_MAT(c.hairColor || '#141414'); fuzz.sheen = 0.5; fuzz.roughness = 1; fuzz.anisotropy = 0; const m = add(new THREE.SphereGeometry(1, 48, 32), fuzz, 0, ry * 1.0, -rz * 0.3, rx * 1.7, ry * 1.5, rz * 1.4);
         const p = m.geometry.attributes.position; for (let i = 0; i < p.count; i++) { const j = 1 + Math.sin(i * 12.9898 + 1) * Math.cos(i * 4.1) * 0.05; p.setXYZ(i, p.getX(i) * j, p.getY(i) * j, p.getZ(i) * j); } m.geometry.computeVertexNormals();
         backBand(hairMat, 1.06, 0.4, 0.62);
       }
@@ -262,10 +273,10 @@ export class Avatar {
         add(unit(0, Math.PI * 2, 0, Math.PI * 0.3), clothMat, 0, ry * 0.06, 0, rx * 1.26, ry * 1.32, rz * 1.26);
         const d = add(new THREE.CylinderGeometry(1, 1.7, 1, 40, 1, true), clothMat, 0, -ry * 2.0, -rz * 0.1, rx * 1.3, ry * 2.2, rz * 1.3); d.material = clothMat.clone(); d.material.side = THREE.DoubleSide;
       }
-      else if (style === 'cap') { const capMat = PROC_MAT(c.hairColor || '#2c3e50', 0.75); add(unit(0, Math.PI * 2, 0, Math.PI * 0.46), capMat, 0, ry * 0.08, -rz * 0.04, rx * 1.1, ry * 1.3, rz * 1.12); add(new THREE.BoxGeometry(rx * 1.6, 0.006, rz * 0.9), capMat, 0, ry * 0.12, rz * 1.35); add(new THREE.SphereGeometry(0.012, 10, 8), capMat, 0, ry * 1.38, -rz * 0.04); }
+      else if (style === 'cap') { const capMat = CLOTH_MAT(c.hairColor || '#2c3e50'); add(unit(0, Math.PI * 2, 0, Math.PI * 0.46), capMat, 0, ry * 0.08, -rz * 0.04, rx * 1.1, ry * 1.3, rz * 1.12); add(new THREE.BoxGeometry(rx * 1.6, 0.006, rz * 0.9), capMat, 0, ry * 0.12, rz * 1.35); add(new THREE.SphereGeometry(0.012, 10, 8), capMat, 0, ry * 1.38, -rz * 0.04); }
     }
     if (c.wig) {
-      const wigMat = PROC_MAT('#f0eadb', 1); cap(wigMat, 1.08, 0.46, ry * 0.05); backBand(wigMat, 1.07, 0.46, 0.62);
+      const wigMat = HAIR_MAT('#f0eadb'); cap(wigMat, 1.08, 0.46, ry * 0.05); backBand(wigMat, 1.07, 0.46, 0.62);
       for (const s of [-1, 1]) add(new THREE.CylinderGeometry(0.3, 0.3, 1.5, 12), wigMat, s * rx * 1.02, -ry * 0.25, -rz * 0.15, ry, ry, ry);
       add(new THREE.CylinderGeometry(0.42, 0.42, 1.7, 12), wigMat, 0, -ry * 0.7, -rz * 1.0, ry, ry, ry);
     }
@@ -373,6 +384,7 @@ export class Avatar {
     this.mixer.update(dt);
     this._applyPose();
     const now = performance.now() / 1000; const talking = now < this.talkUntil;
+    if (this.blinkers.length) { this.blinkT -= dt; if (this.blinkT <= 0) { this.blinkT = 2.5 + Math.random() * 4; this.blink = 0.18; } if (this.blink > 0) { this.blink -= dt; const v = Math.sin(Math.PI * Math.max(0, 1 - this.blink / 0.18)); for (const [m, l, r] of this.blinkers) { m.morphTargetInfluences[l] = v; m.morphTargetInfluences[r] = v; } } }
     for (const [mesh, idx] of this.mouth) {
       const v = talking ? 0.12 + 0.3 * Math.abs(Math.sin(this.t * 13) * Math.sin(this.t * 5.3 + 1)) : 0;
       mesh.morphTargetInfluences[idx] += (v - mesh.morphTargetInfluences[idx]) * Math.min(1, dt * 18);

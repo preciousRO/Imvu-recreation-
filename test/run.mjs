@@ -9,7 +9,7 @@ await new Promise((r) => setTimeout(r, 2500));
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'] });
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
 await ctx.route('**/*', (r) => (r.request().url().startsWith('http://localhost:4174') ? r.continue() : r.abort()));
-const p = await ctx.newPage(); const logs = [];
+const p = await ctx.newPage(); const logs = []; await p.addInitScript(() => { try { localStorage.setItem('loft.quality', 'low'); } catch {} });
 p.on('console', (m) => { if (['error', 'warning'].includes(m.type())) logs.push(`[${m.type()}] ${m.text().slice(0, 240)}`); }); p.on('pageerror', (e) => logs.push('[pageerror] ' + e.message));
 const shot = (n) => p.screenshot({ path: `${OUT}/${n}.png` });
 const state = (fn) => p.evaluate(fn);

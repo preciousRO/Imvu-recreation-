@@ -63,11 +63,18 @@ export class Controls {
     const f = this.focus; const dist = f ? f.dist : this.dist; const pitch = f ? f.pitch : this.pitch; const yaw = f ? f.yaw : this.yaw;
     const base = p ? p.group.position : new THREE.Vector3(); const look = f ? f.at.clone() : new THREE.Vector3(base.x, base.y + 1.3, base.z);
     const off = new THREE.Vector3(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)).multiplyScalar(dist);
-    const want = look.clone().add(off); want.y = Math.max(want.y, 0.4);
+    const want = look.clone().add(off);
+    if (!f) { const dir = want.clone().sub(look); const L = dir.length(); dir.normalize(); let best = L; for (const c of this.room.colliders) { if ((c.h || 0) < 2) continue; const t = rayBox(look, dir, c); if (t !== null && t < best) best = Math.max(0.9, t - 0.3); } if (best < L) want.copy(look).add(dir.multiplyScalar(best)); }
+    want.y = Math.max(want.y, 0.4);
     const k = f ? Math.min(1, dt * 4) : Math.min(1, dt * 9); this.camPos.lerp(want, k); this.lookAt.lerp(look, k);
     this.camera.position.copy(this.camPos); this.camera.lookAt(this.lookAt);
     return walking;
   }
   setFocus(at, { dist = 2.6, yaw = 0, pitch = 0.05 } = {}) { this.focus = at ? { at, dist, yaw, pitch } : null; }
   snap() { this.update(1); this.camPos.copy(this.camera.position); }
+}
+function rayBox(o, d, c) {
+  const min = [c.x1, 0, c.z1], max = [c.x2, c.h, c.z2]; const oo = [o.x, o.y, o.z], dd = [d.x, d.y, d.z]; let t0 = 0, t1 = Infinity;
+  for (let i = 0; i < 3; i++) { if (Math.abs(dd[i]) < 1e-6) { if (oo[i] < min[i] || oo[i] > max[i]) return null; } else { let a = (min[i] - oo[i]) / dd[i], b = (max[i] - oo[i]) / dd[i]; if (a > b) [a, b] = [b, a]; t0 = Math.max(t0, a); t1 = Math.min(t1, b); if (t0 > t1) return null; } }
+  return t0 > 0 ? t0 : null;
 }
