@@ -101,20 +101,20 @@ function bodyMorphs(L) {
   // which structure a vertex belongs to, and the radial vector from its axis
   const part = (p) => {
     const t = closest(p, torso), a = closest(p, arms[p[0] < 0 ? 1 : 0]), l = closest(p, legs[p[0] < 0 ? 1 : 0]);
-    const isArm = a.d < t.d && Math.abs(p[0]) > 0.14 && p[1] > 0.95; const isLeg = p[1] < 0.9 && Math.abs(p[0]) > 0.03;
+    const isArm = a.d < t.d && Math.abs(p[0]) > 0.14 && p[1] > 0.95; const isLeg = p[1] < 0.84 && Math.abs(p[0]) > 0.03;
     return isArm ? { kind: 'arm', ...a } : isLeg ? { kind: 'leg', ...l } : { kind: 'torso', ...t };
   };
   const radial = (p, s, cond) => { const r = part(p); const k = cond(r, p); if (!k) return [0, 0, 0]; const d = sub(p, r.q); return [d[0] * (s[0] - 1) * k, d[1] * (s[1] - 1) * k, d[2] * (s[2] - 1) * k]; };
   const noHands = (r) => (r.kind === 'arm' ? smooth(1 - (r.t - 1.9) / 0.5) : r.kind === 'leg' ? smooth(1 - (r.t - 1.2) / 0.4) : 1);
   return {
-    weight: (p) => radial(p, [1.22, 1, 1.22], (r) => noHands(r) * (r.kind === 'torso' ? (0.45 + 0.55 * bell(p[1], 1.0, 0.24)) : r.kind === 'arm' ? 0.55 : 0.5 + 0.3 * bell(p[1], 0.8, 0.15))),
-    muscle: (p) => radial(p, [1.14, 1, 1.14], (r) => noHands(r) * (r.kind === 'torso' ? 0.8 * bell(p[1], 1.32, 0.16) : r.kind === 'arm' ? 0.5 + 0.6 * bell(r.t, 1.5, 0.5) : 0.5)),
-    shoulders: (p) => radial(p, [1.12, 1, 1.03], (r) => (Math.abs(p[0]) < 0.28 ? bell(p[1], L.neck[1] - 0.05, 0.08) : 0)),
-    chest: (p) => radial(p, [1.05, 1, 1.22], (r) => (r.kind === 'torso' && p[2] > L.hips[2] ? bell(p[1], L.neck[1] - 0.2, 0.08) : 0)),
-    waist: (p) => radial(p, [1.14, 1, 1.12], (r) => (r.kind === 'torso' ? bell(p[1], 1.13, 0.07) : 0)),
-    hips: (p) => radial(p, [1.16, 1, 1.08], (r) => (r.kind === 'torso' || (r.kind === 'leg' && p[1] > 0.8) ? bell(p[1], 0.94, 0.09) : 0)),
-    butt: (p) => radial(p, [1.05, 1, 1.25], (r) => (r.kind !== 'arm' && p[2] < L.hips[2] ? bell(p[1], 0.9, 0.09) : 0)),
-    legs: (p) => radial(p, [1.16, 1, 1.16], (r) => (r.kind === 'leg' ? noHands(r) : 0)),
+    weight: (p) => radial(p, [1.24, 1, 1.24], (r) => noHands(r) * (r.kind === 'torso' ? (0.45 + 0.55 * bell(p[1], 1.0, 0.24)) : r.kind === 'arm' ? 0.55 : 0.5 + 0.3 * bell(p[1], 0.8, 0.15))),
+    muscle: (p) => radial(p, [1.18, 1, 1.18], (r) => noHands(r) * (r.kind === 'torso' ? 0.85 * bell(p[1], 1.32, 0.16) : r.kind === 'arm' ? 0.5 + 0.7 * bell(r.t, 1.5, 0.5) : 0.5)),
+    shoulders: (p) => radial(p, [1.18, 1, 1.04], (r) => (Math.abs(p[0]) < 0.28 ? bell(p[1], L.neck[1] - 0.05, 0.08) : 0)),
+    chest: (p) => radial(p, [1.06, 1, 1.4], (r) => (r.kind === 'torso' && p[2] > L.hips[2] ? bell(p[1], L.neck[1] - 0.2, 0.08) : 0)),
+    waist: (p) => radial(p, [1.2, 1, 1.16], (r) => (r.kind === 'torso' ? bell(p[1], 1.13, 0.07) : 0)),
+    hips: (p) => radial(p, [1.42, 1, 1.22], (r) => (r.kind === 'torso' ? bell(p[1], 0.93, 0.12) : r.kind === 'leg' ? 0.9 * bell(p[1], 0.86, 0.1) : 0)),
+    butt: (p) => radial(p, [1.08, 1, 1.6], (r) => (r.kind !== 'arm' && p[2] < L.hips[2] ? bell(p[1], 0.9, 0.1) : 0)),
+    legs: (p) => radial(p, [1.34, 1, 1.34], (r) => (r.kind === 'leg' ? noHands(r) * (0.55 + 0.45 * bell(p[1], 0.72, 0.16)) : 0)),
   };
 }
 
@@ -139,7 +139,7 @@ async function addMorphs(file, morphs) {
       const posAcc = prim.getAttribute('POSITION'); const pos = posAcc.getArray(); const idx = prim.getIndices()?.getArray(); const n = pos.length / 3;
       const base = computeNormals(pos, idx);
       for (const [name, fn] of Object.entries(morphs)) {
-        if (names.includes(name)) continue;
+        if (names.includes(name)) { const i = names.indexOf(name); const t = prim.listTargets()[i]; const posAcc = t.getAttribute('POSITION'); const nrmAcc = t.getAttribute('NORMAL'); const d = new Float32Array(pos.length); let touched = 0; for (let k = 0; k < n; k++) { const p = [pos[k * 3], pos[k * 3 + 1], pos[k * 3 + 2]]; const v = fn(p); if (v[0] || v[1] || v[2]) { touched++; d[k * 3] = v[0]; d[k * 3 + 1] = v[1]; d[k * 3 + 2] = v[2]; } } const morphed = new Float32Array(pos.length); for (let k = 0; k < pos.length; k++) morphed[k] = pos[k] + d[k]; const nm = computeNormals(morphed, idx); const dn = new Float32Array(pos.length); for (let k = 0; k < pos.length; k++) dn[k] = d[Math.floor(k / 3) * 3] || d[Math.floor(k / 3) * 3 + 1] || d[Math.floor(k / 3) * 3 + 2] ? nm[k] - base[k] : 0; posAcc.setArray(d).setSparse(touched < n * 0.5); if (nrmAcc) nrmAcc.setArray(dn).setSparse(touched < n * 0.5); added++; continue; }
         const d = new Float32Array(pos.length); let touched = 0;
         for (let i = 0; i < n; i++) { const p = [pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]]; const v = fn(p); if (v[0] || v[1] || v[2]) { touched++; d[i * 3] = v[0]; d[i * 3 + 1] = v[1]; d[i * 3 + 2] = v[2]; } }
         const morphed = new Float32Array(pos.length); for (let i = 0; i < pos.length; i++) morphed[i] = pos[i] + d[i];

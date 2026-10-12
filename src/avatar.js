@@ -31,11 +31,18 @@ export const TOPS = { m: [['Polo shirt', 'm2_top'], ['Suit jacket', 'm1_top']], 
 export const BOTTOMS = { m: [['Chinos', 'm2_bottom'], ['Suit trousers', 'm1_bottom']], f: [['Leggings', 'f1_bottom']] };
 export const SHOES = { m: [['Sneakers', 'm2_shoes'], ['Dress shoes', 'm1_shoes']], f: [['Boots', 'f1_shoes']] };
 
+export const MAKEUP_DEFAULT = { f: { brows: 0.8, lashes: 0.9, liner: 0.7, lips: '#b84a5e', gloss: 1, blush: 0.35, contour: 0.4, highlight: 0.8 }, m: { brows: 0.6, lashes: 0.25, liner: 0.15, lips: null, gloss: 0.3, blush: 0, contour: 0.2, highlight: 0.3 } };
+export const BODY_PRESETS = {
+  f: [['Hourglass', { hips: 0.9, butt: 0.85, waist: -0.75, chest: 0.55, legs: 0.5, height: 0.25, shoulders: -0.2 }], ['Curvy', { hips: 1, butt: 1, waist: -0.4, chest: 0.8, legs: 0.7, weight: 0.3, height: 0.1 }], ['Slim', { hips: 0.2, butt: 0.2, waist: -0.8, chest: 0.1, legs: -0.1, height: 0.4, weight: -0.5 }], ['Athletic', { hips: 0.4, butt: 0.6, waist: -0.6, chest: 0.3, legs: 0.3, muscle: 0.5, height: 0.3 }]],
+  m: [['Athletic', { muscle: 0.9, shoulders: 0.8, waist: -0.35, chest: 0.3, height: 0.35, legs: 0.2 }], ['Bulky', { muscle: 1, shoulders: 1, weight: 0.5, chest: 0.6, height: 0.5, legs: 0.5 }], ['Slim', { muscle: 0.1, shoulders: 0.2, waist: -0.6, weight: -0.6, height: 0.4 }], ['Average', {}]],
+};
 export function defaultConfig(gender = 'f') {
   return gender === 'f'
-    ? { gender: 'f', name: 'Aspirant', head: 'f1_head', hair: 'proc:braids', hairColor: '#141414', skin: '#8a5a3a', top: 'f1_top', topColor: '#8e44ad', bottom: 'f1_bottom', bottomColor: '#111111', shoes: 'f1_shoes', shoesColor: null, beard: false, hat: false, glasses: false, face: {}, body: {} }
-    : { gender: 'm', name: 'Aspirant', head: 'm2_head', hair: 'proc:low', hairColor: '#141414', skin: '#6b4027', top: 'm2_top', topColor: '#2980b9', bottom: 'm2_bottom', bottomColor: '#2c3e50', shoes: 'm2_shoes', shoesColor: null, beard: false, hat: false, glasses: false, face: {}, body: {} };
+    ? { gender: 'f', name: 'Aspirant', head: 'f1_head', hair: 'f1_hair', hairColor: '#141414', skin: '#8a5a3a', top: 'f1_top', topColor: '#111111', bottom: 'f1_bottom', bottomColor: '#111111', shoes: 'f1_shoes', shoesColor: null, beard: false, hat: false, glasses: false, chain: null, tattoos: {}, face: { lipFullness: 0.5, eyeSize: 0.35, cheekbones: 0.4, noseWidth: -0.2, chinWidth: -0.2, browHeight: 0.1 }, body: { ...BODY_PRESETS.f[0][1] }, makeup: { ...MAKEUP_DEFAULT.f } }
+    : { gender: 'm', name: 'Aspirant', head: 'm2_head', hair: 'proc:locs', hairColor: '#141414', skin: '#6b4027', top: 'm2_top', topColor: '#111111', bottom: 'm2_bottom', bottomColor: '#111111', shoes: 'm2_shoes', shoesColor: '#ffffff', beard: false, hat: false, glasses: false, chain: 'silver', tattoos: { sleeves: true }, face: { jawWidth: 0.5, chinWidth: 0.3, browDepth: 0.4, lipFullness: 0.3 }, body: { ...BODY_PRESETS.m[0][1] }, makeup: { ...MAKEUP_DEFAULT.m } };
 }
+export const MAKEUP_SLIDERS = [['brows', 'Brows'], ['lashes', 'Lashes'], ['liner', 'Eyeliner'], ['blush', 'Blush'], ['contour', 'Contour'], ['highlight', 'Highlight'], ['gloss', 'Lip gloss']];
+export const LIP_COLORS = ['#b84a5e', '#8e2a3c', '#d9777f', '#c7a08a', '#5a2a2a', '#e04a7a', '#9b4b7a', '#3b1f1f'];
 
 let manifest = null, animIndex = null;
 export async function initAvatars() {
@@ -103,13 +110,33 @@ export function avatarPhoto(renderer, scene, avatar, size = 160) {
 // Physically based upgrades of the imported materials: skin gets peach fuzz sheen and a faint oily clearcoat,
 // eyes a wet clearcoat, hair anisotropic highlights, cloth a soft sheen.
 function physical(src, props = {}) { const m = new THREE.MeshPhysicalMaterial(); THREE.MeshStandardMaterial.prototype.copy.call(m, src); for (const [k, v] of Object.entries(props)) { if (k === 'sheenColor' || k === 'specularColor') m[k] = new THREE.Color(v); else m[k] = v; } return m; }
-const SKIN_PROPS = { roughness: 0.55, sheen: 0.18, sheenRoughness: 0.7, sheenColor: '#ffc9a8', clearcoat: 0.05, clearcoatRoughness: 0.65, envMapIntensity: 0.7 };
-const HAIR_PROPS = { roughness: 0.62, anisotropy: 0.45, anisotropyRotation: Math.PI / 2, sheen: 0.06, sheenColor: '#ffffff', envMapIntensity: 0.35, specularIntensity: 0.6 };
+const SKIN_PROPS = { roughness: 0.45, sheen: 0.1, sheenRoughness: 0.7, sheenColor: '#ffc9a8', clearcoat: 0.45, clearcoatRoughness: 0.3, envMapIntensity: 0.75, specularIntensity: 1.0 };
+const HAIR_PROPS = { roughness: 0.58, anisotropy: 0.6, anisotropyRotation: Math.PI / 2, sheen: 0.04, sheenColor: '#ffffff', envMapIntensity: 0.3, specularIntensity: 0.55 };
 const CLOTH_PROPS = { sheen: 0.12, sheenRoughness: 0.85, sheenColor: '#ffffff', envMapIntensity: 0.8 };
 const EYE_PROPS = { roughness: 0.15, clearcoat: 0.6, clearcoatRoughness: 0.08, envMapIntensity: 0.5, specularIntensity: 0.6 };
 const PROC_MAT = (color, rough = 0.95, extra = {}) => new THREE.MeshPhysicalMaterial({ color, roughness: rough, metalness: 0, ...extra });
-const HAIR_MAT = (color) => PROC_MAT(color, 0.88, { sheen: 0.22, sheenRoughness: 0.6, sheenColor: new THREE.Color('#ffffff').lerp(new THREE.Color(color), 0.6), anisotropy: 0.35, envMapIntensity: 0.35, specularIntensity: 0.5 });
+const HAIR_MAT = (color) => PROC_MAT(color, 0.7, { sheen: 0.15, sheenRoughness: 0.6, sheenColor: new THREE.Color('#ffffff').lerp(new THREE.Color(color), 0.6), anisotropy: 0.55, envMapIntensity: 0.4, specularIntensity: 0.9 });
 const CLOTH_MAT = (color) => PROC_MAT(color, 0.85, { sheen: 0.5, sheenRoughness: 0.7, sheenColor: new THREE.Color('#ffffff') });
+
+// ---------- makeup and tattoos, painted onto the textures using the mesh's own UV layout ----------
+// UV box of the vertices that pass the test, clustered around the median so stray texture islands do not stretch it
+function uvRegion(geo, test, spread = 0.09) {
+  const P = geo.attributes.position, U = geo.attributes.uv; if (!U) return null; const pts = [];
+  for (let i = 0; i < P.count; i++) { if (test(P.getX(i), P.getY(i), P.getZ(i))) pts.push([U.getX(i), U.getY(i)]); }
+  if (!pts.length) return null;
+  const med = (k) => { const a = pts.map((p) => p[k]).sort((x, y) => x - y); return a[Math.floor(a.length / 2)]; }; const mu = med(0), mv = med(1);
+  let u0 = 1, v0 = 1, u1 = 0, v1 = 0, c = 0;
+  for (const [u, v] of pts) { if (Math.abs(u - mu) > spread || Math.abs(v - mv) > spread) continue; c++; if (u < u0) u0 = u; if (v < v0) v0 = v; if (u > u1) u1 = u; if (v > v1) v1 = v; }
+  return c ? { u0, v0, u1, v1, cx: (u0 + u1) / 2, cy: (v0 + v1) / 2, w: u1 - u0, h: v1 - v0 } : null;
+}
+function paintedTexture(srcTex, draw, scale = 1) {
+  const img = srcTex?.image; const W = img ? Math.round((img.width || 1024) * scale) : 1024, H = img ? Math.round((img.height || 1024) * scale) : 1024;
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+  if (img) { try { g.drawImage(img, 0, 0, W, H); } catch (e) { g.fillStyle = '#b07a5a'; g.fillRect(0, 0, W, H); } }
+  draw(g, W, H); const t = new THREE.CanvasTexture(c); t.flipY = false; t.colorSpace = srcTex?.colorSpace || THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; t.anisotropy = 8; return t;
+}
+const ell = (g, x, y, rx, ry, rot = 0) => { g.beginPath(); g.ellipse(x, y, Math.max(1, rx), Math.max(1, ry), rot, 0, Math.PI * 2); g.fill(); };
+const soft = (g, x, y, r, color, a) => { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, color.replace('A', a)); gr.addColorStop(1, color.replace('A', 0)); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); };
 
 export class Avatar {
   constructor(scene, config, opts = {}) {
@@ -167,7 +194,7 @@ export class Avatar {
     for (const src of meshes) {
       const mesh = this._bindMesh(src, partId);
       const matName = src.material.name;
-      if (/Skin|Body/.test(matName)) { mesh.material = tintable(physical(src.material, SKIN_PROPS), refColor(partId, matName)); this._skinMats.push(mesh.material); }
+      if (/Skin|Body/.test(matName)) { mesh.material = tintable(physical(src.material, SKIN_PROPS), refColor(partId, matName)); this._skinMats.push(mesh.material); if (/Body/.test(matName)) this.bodyMesh = mesh; }
       else if (/Hair|Beard/.test(matName)) { mesh.material = tintable(physical(src.material, HAIR_PROPS), refColor(partId, matName)); this._hairMats.push(mesh.material); }
       else if (/Top/.test(matName)) { mesh.material = tintable(physical(src.material, CLOTH_PROPS), refColor(partId, matName)); this._topMats.push(mesh.material); }
       else if (/Bottom/.test(matName)) { mesh.material = tintable(physical(src.material, CLOTH_PROPS), refColor(partId, matName)); this._bottomMats.push(mesh.material); }
@@ -175,7 +202,7 @@ export class Avatar {
       else if (/Eye/.test(matName)) { mesh.material = physical(src.material, EYE_PROPS); }
       else if (/Teeth/.test(matName)) { mesh.material = physical(src.material, { roughness: 0.3, clearcoat: 0.5 }); }
       else { mesh.material = physical(src.material); }
-      if (slot === 'head') { this.headMeshes.push(mesh); if (mesh.morphTargetDictionary) { const d = mesh.morphTargetDictionary; const k = ['mouthOpen', 'jawOpen', 'viseme_aa'].find((n) => n in d); if (k !== undefined) this.mouth.push([mesh, d[k]]); const s = ['mouthSmile', 'mouthSmileLeft'].find((n) => n in d); if (s) mesh.userData.smile = d[s]; if ('eyeBlinkLeft' in d && 'eyeBlinkRight' in d) this.blinkers.push([mesh, d.eyeBlinkLeft, d.eyeBlinkRight]); } }
+      if (slot === 'head') { if (/Head/.test(mesh.name)) this.headMesh = mesh; this.headMeshes.push(mesh); if (mesh.morphTargetDictionary) { const d = mesh.morphTargetDictionary; const k = ['mouthOpen', 'jawOpen', 'viseme_aa'].find((n) => n in d); if (k !== undefined) this.mouth.push([mesh, d[k]]); const s = ['mouthSmile', 'mouthSmileLeft'].find((n) => n in d); if (s) mesh.userData.smile = d[s]; if ('eyeBlinkLeft' in d && 'eyeBlinkRight' in d) this.blinkers.push([mesh, d.eyeBlinkLeft, d.eyeBlinkRight]); } }
       group.add(mesh);
     }
     this.root.add(group);
@@ -205,6 +232,52 @@ export class Avatar {
     this._buildProcedural();
     this.applyColors();
     this.applyMorphs();
+    this.applyMakeup();
+  }
+
+  // Paints brows, lashes, liner, lips, blush, contour and highlight onto the face texture, and a clearcoat map so the
+  // lips and highlights are glossy. Tattoos are painted onto the body texture.
+  applyMakeup() {
+    const mk = this.config.makeup || {}; const head = this.headMesh; const H = this._headMetrics();
+    if (head && H && head.material.map) {
+      const src = head.userData.baseMap || (head.userData.baseMap = head.material.map); const geo = head.geometry;
+      const teeth = this.headMeshes.find((m) => /Teeth/.test(m.name)); let mouthY = H.eyeY - 0.09, mouthZ = H.front - 0.02; if (teeth) { const bb = new THREE.Box3().setFromBufferAttribute(teeth.geometry.attributes.position); mouthY = (bb.min.y + bb.max.y) / 2; mouthZ = bb.max.z; }
+      const lips = uvRegion(geo, (x, y, z) => Math.abs(x) < 0.027 && Math.abs(y - mouthY) < 0.011 && z > mouthZ - 0.006, 0.06);
+      const eyes = [H.le, H.re].map((e) => uvRegion(geo, (x, y, z) => Math.hypot(x - e.x, y - e.y, z - e.z) < 0.024 && z > H.eyeZ - 0.02));
+      const brows = [H.le, H.re].map((e) => uvRegion(geo, (x, y, z) => Math.abs(x - e.x) < 0.022 && y > H.eyeY + 0.012 && y < H.eyeY + 0.032 && z > H.eyeZ - 0.02));
+      const cheeks = [1, -1].map((s) => uvRegion(geo, (x, y, z) => x * s > 0.03 && x * s < 0.07 && y > H.eyeY - 0.05 && y < H.eyeY - 0.02 && z > H.eyeZ - 0.06));
+      const bridge = uvRegion(geo, (x, y, z) => Math.abs(x) < 0.006 && y > H.eyeY - 0.03 && y < H.eyeY + 0.005 && z > H.eyeZ - 0.01);
+      const gloss = document.createElement('canvas'); gloss.width = gloss.height = 512; const gg = gloss.getContext('2d'); gg.fillStyle = 'rgb(70,70,70)'; gg.fillRect(0, 0, 512, 512);
+      head.material.map = paintedTexture(src, (g, W, Hh) => {
+        const k = (v) => Math.max(0, Math.min(1, +v || 0)); const px = (r) => ({ x: r.cx * W, y: r.cy * Hh, w: r.w * W, h: r.h * Hh, x0: r.u0 * W, x1: r.u1 * W, y0: r.v0 * Hh, y1: r.v1 * Hh });
+        for (const [bi, b] of brows.entries()) if (b && k(mk.brows)) { const p = px(b); g.globalCompositeOperation = 'multiply'; g.fillStyle = `rgba(35,22,14,${0.85 * k(mk.brows)})`; const inner = bi === 0 ? p.x0 : p.x1; ell(g, p.x + (inner - p.x) * 0.1, p.y + p.h * 0.1, p.w * 0.5, p.h * 0.22, bi === 0 ? -0.18 : 0.18); }
+        for (const [ei, e] of eyes.entries()) if (e) { const p = px(e); const outer = ei === 0 ? p.x1 : p.x0; const inner = ei === 0 ? p.x0 : p.x1; const dir = ei === 0 ? 1 : -1; g.globalCompositeOperation = 'source-over';
+          if (k(mk.liner)) { g.strokeStyle = `rgba(12,8,10,${0.9 * k(mk.liner)})`; g.lineCap = 'round'; g.lineWidth = p.h * 0.16 * k(mk.liner) + 1; g.beginPath(); g.moveTo(inner, p.y - p.h * 0.05); g.quadraticCurveTo(p.x, p.y0 - p.h * 0.08, outer, p.y - p.h * 0.1); g.lineTo(outer + dir * p.w * 0.22, p.y - p.h * 0.32); g.stroke(); }
+          if (k(mk.lashes)) { g.strokeStyle = `rgba(10,8,10,${0.95 * k(mk.lashes)})`; g.lineWidth = Math.max(1, p.h * 0.05); for (let i = 0; i < 9; i++) { const t = 0.15 + (i / 8) * 0.8; const x = inner + (outer - inner) * t; const y = p.y0 + Math.sin(t * Math.PI) * -p.h * 0.1 - p.h * 0.02; const len = p.h * (0.25 + 0.3 * k(mk.lashes)) * (0.6 + 0.4 * Math.sin(t * Math.PI)); g.beginPath(); g.moveTo(x, y + p.h * 0.08); g.quadraticCurveTo(x + dir * len * 0.3, y - len * 0.6, x + dir * len * 0.7, y - len); g.stroke(); } g.lineWidth = Math.max(1, p.h * 0.03); for (let i = 0; i < 5; i++) { const t = 0.3 + (i / 4) * 0.6; const x = inner + (outer - inner) * t; g.beginPath(); g.moveTo(x, p.y1 - p.h * 0.1); g.lineTo(x + dir * p.h * 0.05, p.y1 + p.h * 0.12 * k(mk.lashes)); g.stroke(); } }
+        }
+        if (lips && mk.lips) { const p = px(lips); g.globalCompositeOperation = 'multiply'; g.fillStyle = mk.lips; g.globalAlpha = 0.85; ell(g, p.x, p.y, p.w * 0.5, p.h * 0.5); g.globalAlpha = 1; g.globalCompositeOperation = 'screen'; g.fillStyle = `rgba(255,255,255,${0.22 * k(mk.gloss)})`; ell(g, p.x, p.y - p.h * 0.18, p.w * 0.22, p.h * 0.1); }
+        for (const [ci, c] of cheeks.entries()) if (c) { const p = px(c); if (k(mk.blush)) { g.globalCompositeOperation = 'multiply'; soft(g, p.x, p.y - p.h * 0.1, p.w * 0.6, 'rgba(225,95,120,A)', 0.55 * k(mk.blush)); } if (k(mk.contour)) { g.globalCompositeOperation = 'multiply'; soft(g, p.x + (ci === 0 ? 1 : -1) * p.w * 0.25, p.y + p.h * 0.35, p.w * 0.55, 'rgba(90,50,35,A)', 0.5 * k(mk.contour)); } if (k(mk.highlight)) { g.globalCompositeOperation = 'screen'; soft(g, p.x + (ci === 0 ? 1 : -1) * p.w * 0.15, p.y - p.h * 0.45, p.w * 0.35, 'rgba(255,240,225,A)', 0.35 * k(mk.highlight)); } }
+        if (bridge && k(mk.highlight)) { const p = px(bridge); g.globalCompositeOperation = 'screen'; const gr = g.createLinearGradient(p.x - p.w, p.y, p.x + p.w, p.y); gr.addColorStop(0, 'rgba(255,245,230,0)'); gr.addColorStop(0.5, `rgba(255,245,230,${0.35 * k(mk.highlight)})`); gr.addColorStop(1, 'rgba(255,245,230,0)'); g.fillStyle = gr; g.fillRect(p.x - p.w, p.y0, p.w * 2, p.h); }
+        g.globalCompositeOperation = 'source-over';
+        // gloss map (same uv space, half size)
+        const s = 512 / W; gg.fillStyle = 'rgb(80,80,80)'; gg.fillRect(0, 0, 512, 512);
+        if (lips) { const p = px(lips); gg.fillStyle = `rgb(${Math.round(80 + 175 * k(mk.gloss))},${Math.round(80 + 175 * k(mk.gloss))},${Math.round(80 + 175 * k(mk.gloss))})`; ell(gg, p.x * s, p.y * s, p.w * 0.5 * s, p.h * 0.5 * s); }
+        if (bridge) { const p = px(bridge); gg.fillStyle = `rgb(${Math.round(80 + 120 * k(mk.highlight))},${Math.round(80 + 120 * k(mk.highlight))},${Math.round(80 + 120 * k(mk.highlight))})`; ell(gg, p.x * s, p.y * s, p.w * 0.9 * s, p.h * 0.55 * s); }
+        for (const c of cheeks) if (c) { const p = px(c); gg.fillStyle = `rgb(${Math.round(80 + 100 * k(mk.highlight))},${Math.round(80 + 100 * k(mk.highlight))},${Math.round(80 + 100 * k(mk.highlight))})`; ell(gg, p.x * s, (p.y - p.h * 0.4) * s, p.w * 0.4 * s, p.h * 0.3 * s); }
+      });
+      const gt = new THREE.CanvasTexture(gloss); gt.flipY = false; head.material.clearcoat = 1; head.material.clearcoatMap = gt; head.material.needsUpdate = true;
+    }
+    // tattoos on the body texture
+    const body = this.bodyMesh; const tt = this.config.tattoos || {};
+    if (body && body.material.map) {
+      const src = body.userData.baseMap || (body.userData.baseMap = body.material.map); const geo = body.geometry;
+      if (tt.sleeves || tt.chest) {
+        const arms = [1, -1].map((s) => uvRegion(geo, (x, y, z) => x * s > 0.13 && x * s < 0.42 && y > 0.95 && y < 1.5)); const chest = uvRegion(geo, (x, y, z) => Math.abs(x) < 0.16 && y > 1.2 && y < 1.42 && z > 0.02);
+        body.material.map = paintedTexture(src, (g, W, Hh) => { g.globalCompositeOperation = 'multiply'; const ink = 'rgba(28,30,40,0.82)'; const draw = (r, seed) => { if (!r) return; const x0 = r.u0 * W, y0 = r.v0 * Hh, w = r.w * W, h = r.h * Hh; let rs = seed; const rnd = () => { rs = (rs * 9301 + 49297) % 233280; return rs / 233280; }; g.strokeStyle = ink; g.fillStyle = ink; g.lineCap = 'round'; for (let i = 0; i < 22; i++) { g.lineWidth = 1 + rnd() * Math.min(w, h) * 0.03; g.beginPath(); const sx = x0 + rnd() * w, sy = y0 + rnd() * h; g.moveTo(sx, sy); g.bezierCurveTo(sx + (rnd() - 0.5) * w * 0.5, sy + (rnd() - 0.5) * h * 0.5, sx + (rnd() - 0.5) * w * 0.5, sy + (rnd() - 0.5) * h * 0.5, x0 + rnd() * w, y0 + rnd() * h); g.stroke(); } for (let i = 0; i < 8; i++) { const cx = x0 + rnd() * w, cy = y0 + rnd() * h, r = Math.min(w, h) * (0.03 + rnd() * 0.06); g.beginPath(); for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2; const rr = k % 2 ? r * 0.45 : r; g.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); } g.closePath(); g.fill(); } };
+          if (tt.sleeves) { draw(arms[0], 7); draw(arms[1], 13); } if (tt.chest) draw(chest, 29); g.globalCompositeOperation = 'source-over'; });
+      } else if (body.material.map !== src) body.material.map = src;
+      body.material.needsUpdate = true;
+    }
   }
 
   // Sims style sculpting: face and body sliders drive the morph targets baked into every part.
@@ -280,6 +353,16 @@ export class Avatar {
       for (const s of [-1, 1]) add(new THREE.CylinderGeometry(0.3, 0.3, 1.5, 12), wigMat, s * rx * 1.02, -ry * 0.25, -rz * 0.15, ry, ry, ry);
       add(new THREE.CylinderGeometry(0.42, 0.42, 1.7, 12), wigMat, 0, -ry * 0.7, -rz * 1.0, ry, ry, ry);
     }
+    if (c.chain) {
+      const metal = new THREE.MeshPhysicalMaterial({ color: c.chain === 'gold' ? '#e9c15a' : '#dfe3ea', metalness: 1, roughness: 0.18, envMapIntensity: 1.4 });
+      const body = this.parts.body?.children?.[0]; const sk = body?.skeleton; const idx = sk ? sk.bones.findIndex((b) => b.name === 'Spine2') : -1;
+      if (sk && idx >= 0) {
+        const inv = sk.boneInverses[idx]; const bind = inv.clone().invert(); const neck = new THREE.Vector3().setFromMatrixPosition(bind);
+        const place = (geo, x, y, z, rx = 0) => { const m = new THREE.Mesh(geo, metal); m.castShadow = true; const world = new THREE.Matrix4().compose(new THREE.Vector3(neck.x + x, neck.y + y, neck.z + z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, 0, 0)), new THREE.Vector3(1, 1, 1)); inv.clone().multiply(world).decompose(m.position, m.quaternion, m.scale); sk.bones[idx].add(m); this.procMeshes.push(m); return m; };
+        const links = 26; for (let i = 0; i < links; i++) { const a = (i / links) * Math.PI * 2; const r = 0.085; const x = Math.sin(a) * r * 1.05, zz = Math.cos(a) * r; if (zz < -0.03) continue; const y = 0.19 - Math.max(0, zz) * 0.7; const link = place(new THREE.TorusGeometry(0.011, 0.0038, 8, 14), x, y, zz + 0.05, 0); link.rotation.y += a; link.rotation.x += i % 2 ? Math.PI / 2 : 0; }
+        place(new THREE.CylinderGeometry(0.018, 0.018, 0.005, 20), 0, 0.11, 0.135, Math.PI / 2);
+      }
+    }
     if (c.glasses && H.le && H.re) {
       const gm = new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.3, metalness: 0.6 });
       const lens = new THREE.MeshPhysicalMaterial({ color: '#8fb4d6', transparent: true, opacity: 0.22, roughness: 0.05, side: THREE.DoubleSide });
@@ -301,13 +384,14 @@ export class Avatar {
   }
 
   async setConfig(patch) {
-    const needRebuild = ['head', 'top', 'bottom', 'shoes', 'hair', 'beard', 'hat', 'glasses', 'wig'].some((k) => k in patch && patch[k] !== this.config[k]);
+    const needRebuild = ['head', 'top', 'bottom', 'shoes', 'hair', 'beard', 'hat', 'glasses', 'wig', 'chain'].some((k) => k in patch && patch[k] !== this.config[k]);
     const procRebuild = ['hairColor', 'topColor'].some((k) => k in patch && patch[k] !== this.config[k]);
     const headShape = 'face' in patch && (patch.face?.headWidth !== this.config.face?.headWidth || patch.face?.headDepth !== this.config.face?.headDepth);
     Object.assign(this.config, patch);
     if (needRebuild) await this.rebuildParts(); else if (procRebuild || headShape) this._buildProcedural();
     this.applyColors();
     if ('face' in patch || 'body' in patch) this.applyMorphs();
+    if ('makeup' in patch || 'tattoos' in patch || 'skin' in patch) this.applyMakeup();
   }
 
   setFormal(on) { if (this.formal === !!on) return; this.formal = !!on; this.applyColors(); }

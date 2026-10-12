@@ -33,6 +33,11 @@ furniture is rounded with fabric sheen or leather clearcoat, floors carry normal
 and screens are area lights, the club has moving spotlights, the rooftop string lights, the beach a physical sky and animated water.
 Quality (Auto, Ultra, High, Low) is in the top bar; Auto picks from the device. Low turns the post chain off for phones.
 
+The avatars follow the modern IMVU style: makeup is painted straight onto the face texture using the mesh's own UV layout
+(brows, lashes, eyeliner, lips, blush, contour, highlight) with a clearcoat map so lips and highlights are glossy, skin is oiled,
+hair has anisotropic shine, bodies default to hourglass or athletic presets with stronger hip, thigh, waist and chest morphs,
+and there are chains, sleeve and chest tattoos, and new rooms (Luxe Lounge with a fireplace, Corner Store with drinks fridges).
+
 Honest note: this is as far as a browser engine and the available models go. Film quality humans need scanned heads, strand hair
 and 4K textures from a team of artists; the models here are mid detail, so the result is a clear step up, not a GTA 6 frame.
 
